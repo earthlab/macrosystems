@@ -1,0 +1,97 @@
+---
+title: "R Notebook"
+output:
+  github_document:
+    html_preview: true
+---
+
+
+```{r}
+library(reticulate)
+library(usethis)
+
+#use_python("/Users/ty/opt/miniconda3/bin/python")
+#use_virtualenv("~/myenv")
+#use_condaenv(condaenv = "r-nlp", conda = "/Users/ty/opt/miniconda3/envs/earth-analytics-python/opt/miniconda3")
+#use_virtualenv("/Users/ty/opt/miniconda3/envs/earth-analytics-python/bin/python3")
+py_config()
+
+
+
+
+edit_r_environ()
+```
+
+```{python}
+import pandas as pd
+import geopandas
+import matplotlib.pyplot as plt
+import numpy as np
+import plotnine
+import contextily as cx
+import requests
+import json
+
+```
+
+https://www.neonscience.org/resources/learning-hub/tutorials/neon-api-01-introduction-requests
+
+```{python}
+#Every request begins with the server's URL
+SERVER = 'http://data.neonscience.org/api/v0/'
+#Site Code for Lower Teakettle
+SITECODE = 'TEAK'
+#Make request, using the sites/ endpoint
+site_request = requests.get(SERVER+'sites/'+SITECODE)
+
+#Convert to Python JSON object
+site_json = site_request.json()
+site_json
+```
+
+```{python}
+site_json['data'].keys()
+```
+
+
+```{python}
+for product in site_json['data']['dataProducts']:
+    print(product['dataProductCode'],product['dataProductTitle'])
+```
+
+
+
+```{python}
+
+PRODUCTCODE = 'DP1.00023.001'
+```
+
+
+```{python}
+#Get available months of Breeding Landbird Count data products for TEAK site
+#Loop through the 'dataProducts' list items (each one a dict) at the site
+for product in site_json['data']['dataProducts']: 
+    if(product['dataProductCode'] == PRODUCTCODE): #If a list item's 'dataProductCode' dict element equals the product code string,
+        print('Available Months: ',product['availableMonths']) #print the available months and URLs
+        print('URLs for each Month: ', product['availableDataUrls'])
+```
+
+
+```{python}
+#Make Request
+data_request = requests.get(SERVER+'data/'+PRODUCTCODE+'/'+SITECODE+'/'+'2018-06')
+data_json = data_request.json()
+
+print(data_json)
+```
+
+
+```{r}
+library(tidyverse)
+data_raw <- tibble::enframe(unlist(py$data_json))
+data_raw
+```
+
+
+
+
