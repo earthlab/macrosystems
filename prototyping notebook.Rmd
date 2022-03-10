@@ -8,17 +8,13 @@ output:
 
 ```{r}
 library(reticulate)
-library(usethis)
+#library(usethis)
 
 #use_python("/Users/ty/opt/miniconda3/bin/python")
 #use_virtualenv("~/myenv")
 #use_condaenv(condaenv = "r-nlp", conda = "/Users/ty/opt/miniconda3/envs/earth-analytics-python/opt/miniconda3")
 #use_virtualenv("/Users/ty/opt/miniconda3/envs/earth-analytics-python/bin/python3")
 py_config()
-
-
-
-
 edit_r_environ()
 ```
 
@@ -31,23 +27,104 @@ import plotnine
 import contextily as cx
 import requests
 import json
-
 ```
 
 https://www.neonscience.org/resources/learning-hub/tutorials/neon-api-01-introduction-requests
 
+
+
 ```{python}
-#Every request begins with the server's URL
+metadata = pd.read_csv('data/NEON_Field_Site_Metadata_20220224.csv')
+print(metadata.field_site_id)
+```
+
+
+```{r}
+library(tidyverse)
+library(sf)
+library(maps)
+```
+
+
+```{r}
+metadata_read = read.csv('data/NEON_Field_Site_Metadata_20220224.csv')
+
+metatdata <- st_as_sf(metadata_read, coords = c("field_longitude", "field_latitude"), crs=4326)
+
+bb <- st_bbox(metatdata)
+
+usa <- st_as_sf(map_data("usa"), coords = c( "long", "lat"), crs=4326)
+
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = usa, col="white") +
+  geom_sf(data=metatdata,aes( color=field_avg_number_of_green_days), size=5) +
+  coord_sf(xlim = c(bb[1], bb[3]), ylim = c(bb[2], bb[4]))
+```
+
+```{r}
+terrestrial_sites <- metatdata %>% 
+  filter(field_site_type == "Core Terrestrial" | field_site_type == "Gradient Terrestrial" ) 
+
+as.data.frame(terrestrial_sites)
+```
+```{r}
+ggplot() +
+  geom_sf(data = usa, col="white") +
+  geom_sf(data=terrestrial_sites,aes( color=field_avg_number_of_green_days), size=5) +
+  coord_sf(xlim = c(bb[1], bb[3]), ylim = c(bb[2], bb[4]))
+```
+
+```{r}
+box <- c(xmin = -130, ymin = 25, xmax = -100, ymax = 50)
+west_us_terrestrial_neon_sites <- metatdata %>% 
+  filter(field_site_type == "Core Terrestrial" | field_site_type == "Gradient Terrestrial" ) %>%
+  st_crop(box)
+
+as.data.frame(west_us_terrestrial_neon_sites)
+```
+```{r}
+ggplot() +
+  geom_sf(data = usa, col="white") +
+  geom_sf(data=west_us_terrestrial_neon_sites,aes( color=field_avg_number_of_green_days), size=2) +
+  coord_sf(xlim = c(box[1], box[3]), ylim = c(box[2], box[4]))
+```
+
+```{r}
+west_us_terrestrial_Evergreen_neon_sites <- metatdata %>% 
+  filter(field_site_type == "Core Terrestrial" | field_site_type == "Gradient Terrestrial" ) %>%
+  filter(field_dominant_nlcd_classes !=  "Grassland/Herbaceous" & field_dominant_nlcd_classes !=  "Shrub/Scrub" & field_dominant_nlcd_classes != "Cultivated Crops") %>%
+  st_crop(box)
+
+as.data.frame(west_us_terrestrial_Evergreen_neon_sites)
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = usa, col="white") +
+  geom_sf(data=west_us_terrestrial_Evergreen_neon_sites,aes( color=field_mean_canopy_height_m), size=2) +
+  coord_sf(xlim = c(box[1], box[3]), ylim = c(box[2], box[4]))
+```
+
+
+```{python}
 SERVER = 'http://data.neonscience.org/api/v0/'
-#Site Code for Lower Teakettle
-SITECODE = 'TEAK'
-#Make request, using the sites/ endpoint
+SITECODE = 'NIWO'
+
 site_request = requests.get(SERVER+'sites/'+SITECODE)
 
 #Convert to Python JSON object
 site_json = site_request.json()
+site_json.keys()
+
+site_json['data'].keys()
+
 site_json
 ```
+
+
 
 ```{python}
 site_json['data'].keys()
@@ -57,13 +134,14 @@ site_json['data'].keys()
 ```{python}
 for product in site_json['data']['dataProducts']:
     print(product['dataProductCode'],product['dataProductTitle'])
+    
 ```
 
 
 
 ```{python}
 
-PRODUCTCODE = 'DP1.00023.001'
+PRODUCTCODE = 'DP2.30011.001'
 ```
 
 
@@ -79,19 +157,15 @@ for product in site_json['data']['dataProducts']:
 
 ```{python}
 #Make Request
-data_request = requests.get(SERVER+'data/'+PRODUCTCODE+'/'+SITECODE+'/'+'2018-06')
+data_request = requests.get(SERVER+'data/'+PRODUCTCODE+'/'+SITECODE+'/'+'2020-08')
 data_json = data_request.json()
 
 print(data_json)
 ```
 
-
 ```{r}
-library(tidyverse)
-data_raw <- tibble::enframe(unlist(py$data_json))
-data_raw
+py$data_json
 ```
-
 
 
 
