@@ -1,8 +1,8 @@
 ---
 title: "R Notebook"
 output:
-  github_document:
-    html_preview: true
+  html_document:
+    df_print: paged
 ---
 # Spectral variance across the western United States
 
