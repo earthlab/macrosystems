@@ -4,8 +4,12 @@ output:
   github_document:
     html_preview: true
 ---
+# Spectral variance across the western United States
 
-
+## Setup Python environment
+  I'm using the environment provided by the Earth Data Science class. https://www.earthdatascience.org/workshops/setup-earth-analytics-python/
+  
+  I'm running python from Rstudio. This chunk tells rstudio how to find that environment.
 ```{r}
 library(reticulate)
 #library(usethis)
@@ -15,9 +19,9 @@ library(reticulate)
 #use_condaenv(condaenv = "r-nlp", conda = "/Users/ty/opt/miniconda3/envs/earth-analytics-python/opt/miniconda3")
 #use_virtualenv("/Users/ty/opt/miniconda3/envs/earth-analytics-python/bin/python3")
 py_config()
-edit_r_environ()
+#edit_r_environ()
 ```
-
+Load python packages
 ```{python}
 import pandas as pd
 import geopandas
@@ -29,8 +33,10 @@ import requests
 import json
 ```
 
-https://www.neonscience.org/resources/learning-hub/tutorials/neon-api-01-introduction-requests
 
+## Filter metadata to decide what you're going to try to download.
+A small csv version of the neon metadate exists on the NEON website. Download this file and load it into python.
+https://www.neonscience.org/resources/learning-hub/tutorials/neon-api-01-introduction-requests
 
 
 ```{python}
@@ -38,14 +44,18 @@ metadata = pd.read_csv('data/NEON_Field_Site_Metadata_20220224.csv')
 print(metadata.field_site_id)
 ```
 
-
+## R code to translate into python code
 ```{r}
 library(tidyverse)
 library(sf)
 library(maps)
 ```
 
-
+Steps:
+1) Read in the metadata csv
+2) Spatially project those metadata so we can do spatial filters
+3) Calculate a bounding box around the available NEON sites
+4) Download a basemap and make sure it has the same spatial projection as your data.
 ```{r}
 metadata_read = read.csv('data/NEON_Field_Site_Metadata_20220224.csv')
 
@@ -57,6 +67,7 @@ usa <- st_as_sf(map_data("usa"), coords = c( "long", "lat"), crs=4326)
 
 ```
 
+Plot the NEON sites
 ```{r}
 ggplot() +
   geom_sf(data = usa, col="white") +
@@ -64,12 +75,15 @@ ggplot() +
   coord_sf(xlim = c(bb[1], bb[3]), ylim = c(bb[2], bb[4]))
 ```
 
+Filter your data to only include terrestrial sites
 ```{r}
 terrestrial_sites <- metatdata %>% 
   filter(field_site_type == "Core Terrestrial" | field_site_type == "Gradient Terrestrial" ) 
 
 as.data.frame(terrestrial_sites)
 ```
+
+Plot your filtered data.
 ```{r}
 ggplot() +
   geom_sf(data = usa, col="white") +
@@ -77,6 +91,7 @@ ggplot() +
   coord_sf(xlim = c(bb[1], bb[3]), ylim = c(bb[2], bb[4]))
 ```
 
+Filter your data with a bounding box to only include sites in the "west"
 ```{r}
 box <- c(xmin = -130, ymin = 25, xmax = -100, ymax = 50)
 west_us_terrestrial_neon_sites <- metatdata %>% 
@@ -85,6 +100,7 @@ west_us_terrestrial_neon_sites <- metatdata %>%
 
 as.data.frame(west_us_terrestrial_neon_sites)
 ```
+Plot your western points to confirm that you have properly filtered them.
 ```{r}
 ggplot() +
   geom_sf(data = usa, col="white") +
@@ -92,6 +108,7 @@ ggplot() +
   coord_sf(xlim = c(box[1], box[3]), ylim = c(box[2], box[4]))
 ```
 
+Filter the western NEON sites to only include sites with Evergreen trees present. 
 ```{r}
 west_us_terrestrial_Evergreen_neon_sites <- metatdata %>% 
   filter(field_site_type == "Core Terrestrial" | field_site_type == "Gradient Terrestrial" ) %>%
@@ -101,6 +118,7 @@ west_us_terrestrial_Evergreen_neon_sites <- metatdata %>%
 as.data.frame(west_us_terrestrial_Evergreen_neon_sites)
 ```
 
+Plot your Evergreen filter to confirm that your filter worked properly. 
 ```{r}
 ggplot() +
   geom_sf(data = usa, col="white") +
@@ -108,6 +126,10 @@ ggplot() +
   coord_sf(xlim = c(box[1], box[3]), ylim = c(box[2], box[4]))
 ```
 
+## Learn how to use an API
+Select one of the sitecodes from your filtered metadataset above and enter it below. Follow the tutorial offered by NEON to explore the data structure and organizational scheme for neon api data. 
+
+https://www.neonscience.org/resources/learning-hub/tutorials/neon-api-01-introduction-requests
 
 ```{python}
 SERVER = 'http://data.neonscience.org/api/v0/'
@@ -162,6 +184,7 @@ data_json = data_request.json()
 
 print(data_json)
 ```
+
 
 ```{r}
 py$data_json
